@@ -8,25 +8,43 @@ const Transaction =require('../models/transaction');
 
 
 const sendtran =async(req,res)=>{
-    const ethTousd=4125;
+const ethTousd=4125;
 const usdTobnb=0.002;
   const tran={
     fsenderAddress:req.body.fsenderAddress,
-    famt:req.body.famt,
+    amt:req.body.amt,
     sreceiverAddress:req.body.sreceiverAddress,
     ftxid:"",
     stxid:""
   };
-  let UsdValueOfEther=(tran.famt*ethTousd);
-  //console.log(UsdValueOfEther);
-  
+  let UsdValueOfEther=(tran.amt*ethTousd);
+
+try{
+  web3.utils.toChecksumAddress(tran.fsenderAddress)
+}catch(e){
+  return res.status(404).send(e.message);
+}
+try{
+  web3.utils.toChecksumAddress(tran.sreceiverAddress)
+}catch(e){
+  return res.status(404).send(e.message);
+}
+web3.eth.getBalance(tran.fsenderAddress,async(err,result)=>{
+  if(err){
+    console.log(err);
+  }else{
+  let bal = await web3.utils.fromWei(result,"ether")
+  if(bal<tran.amt){
+    return res.json("insufficient balance"); 
+  }}
+})
 const pkey1=Buffer.from('3f79b0c05c0ac5d92f388fa251a7cb4988731983d79ee7d1cff1125f38a70571','hex');
 
 web3.eth.getTransactionCount(tran.fsenderAddress, (err, txCount) => {
   const txObject = {
        nonce: web3.utils.toHex(txCount),
        to: "0xc301965D884165b59bd828D0E7634D3cd00A3a5A",
-       value: web3.utils.toHex(web3.utils.toWei(tran.famt.toString(), 'ether')),
+       value: web3.utils.toHex(web3.utils.toWei(tran.amt.toString(), 'ether')),
        gasLimit: web3.utils.toHex(21000),
        gasPrice: web3.utils.toHex(web3.utils.toWei('10', 'gwei'))
   }
@@ -37,7 +55,8 @@ web3.eth.getTransactionCount(tran.fsenderAddress, (err, txCount) => {
 
  web3.eth.sendSignedTransaction(raw, (err, ftxid) => {
     if(err){
-        console.log(err)
+        //console.log(err)
+       return res.json(err);
       }else{
        // console.log('txHash eth: ', ftxid)
       }
@@ -82,7 +101,7 @@ const raw = '0x' + serializedTransaction.toString('hex')
             tran.stxid=stxid;
     const newtran =new Transaction(tran);
     newtran.save();
-    res.json(newtran);
+    return res.json(newtran);
         }
     })
 })

@@ -5,7 +5,7 @@ const TransactionSchema = new Schema({
     
         fsenderAddress:{type:String},
         freceiverAddress:{type:String},
-        famt:{type:Number},
+        amt:{type:Number},
         ftxid:{type:String,default:false},
         ssenderAddress:{type:String},
         sreceiverAddress:{type:String},
