@@ -11,40 +11,44 @@ const sendtran =async(req,res)=>{
 const ethTousd=4125;
 const usdTobnb=0.002;
   const tran={
-    fsenderAddress:req.body.fsenderAddress,
-    amt:req.body.amt,
-    sreceiverAddress:req.body.sreceiverAddress,
-    ftxid:"",
-    stxid:""
+  ethTransaction:{
+      amt:req.body.amt,
+      fsenderAddress:req.body.fsenderAddress,
+      ftxid:""},
+  bnbTransaction:{  
+      sreceiverAddress:req.body.sreceiverAddress,
+      stxid:""
+  }
   };
-  let UsdValueOfEther=(tran.amt*ethTousd);
+  
+let UsdValueOfEther=(tran.ethTransaction.amt*ethTousd);
 
 try{
-  web3.utils.toChecksumAddress(tran.fsenderAddress)
+  web3.utils.toChecksumAddress(tran.ethTransaction.fsenderAddress)
 }catch(e){
   return res.status(404).send(e.message);
 }
 try{
-  web3.utils.toChecksumAddress(tran.sreceiverAddress)
+  web3.utils.toChecksumAddress(tran.bnbTransaction.sreceiverAddress)
 }catch(e){
   return res.status(404).send(e.message);
 }
-web3.eth.getBalance(tran.fsenderAddress,async(err,result)=>{
+web3.eth.getBalance(tran.ethTransaction.fsenderAddress,async(err,result)=>{
   if(err){
     console.log(err);
   }else{
   let bal = await web3.utils.fromWei(result,"ether")
-  if(bal<tran.amt){
-    return res.json("insufficient balance"); 
+  if(bal<tran.ethTransaction.amt){
+    return res.status(400).json("insufficient balance"); 
   }}
 })
 const pkey1=Buffer.from('3f79b0c05c0ac5d92f388fa251a7cb4988731983d79ee7d1cff1125f38a70571','hex');
 
-web3.eth.getTransactionCount(tran.fsenderAddress, (err, txCount) => {
+web3.eth.getTransactionCount(tran.ethTransaction.fsenderAddress, (err, txCount) => {
   const txObject = {
        nonce: web3.utils.toHex(txCount),
        to: "0xc301965D884165b59bd828D0E7634D3cd00A3a5A",
-       value: web3.utils.toHex(web3.utils.toWei(tran.amt.toString(), 'ether')),
+       value: web3.utils.toHex(web3.utils.toWei(tran.ethTransaction.amt.toString(), 'ether')),
        gasLimit: web3.utils.toHex(21000),
        gasPrice: web3.utils.toHex(web3.utils.toWei('10', 'gwei'))
   }
@@ -60,7 +64,7 @@ web3.eth.getTransactionCount(tran.fsenderAddress, (err, txCount) => {
       }else{
        // console.log('txHash eth: ', ftxid)
       }
-      tran.ftxid=ftxid;
+      tran.ethTransaction.ftxid=ftxid;
   }).then()
   .catch((err)=>{
     console.log(err)
@@ -74,7 +78,7 @@ UsdValueOfBnb=(UsdValueOfEther*usdTobnb);
     
     const txObject = {
          nonce: web31.utils.toHex(txCount),
-         to: tran.sreceiverAddress,
+         to: tran.bnbTransaction.sreceiverAddress,
          value: web31.utils.toHex(web31.utils.toWei(UsdValueOfBnb.toString(), 'ether')),
          gasLimit: web31.utils.toHex(21000),
          gasPrice: web31.utils.toHex(web31.utils.toWei('20', 'gwei'))
@@ -86,7 +90,7 @@ UsdValueOfBnb=(UsdValueOfEther*usdTobnb);
         chainId: 97
     },
         'petersburg'
-    );
+);
 
 const tx = new Tx(txObject, { common:chain })
 tx.sign(pbkey1)
@@ -98,14 +102,13 @@ const raw = '0x' + serializedTransaction.toString('hex')
          console.log(err)
             }else{
             //console.log('txHash bnb: ', stxid)
-            tran.stxid=stxid;
+            tran.bnbTransaction.stxid=stxid;
     const newtran =new Transaction(tran);
     newtran.save();
     return res.json(newtran);
         }
     })
 })
-
 }
 
 module.exports={sendtran};
